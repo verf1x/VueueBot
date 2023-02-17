@@ -1,156 +1,55 @@
-﻿using Discord.Interactions;
+﻿namespace VerfixMusic.Core.Services;
+
+using Discord.Interactions;
 using Discord.WebSocket;
 using Discord;
 using Microsoft.Extensions.DependencyInjection;
-using Discord.Addons.Hosting;
-using Discord.Addons.Hosting.Util;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
 
-namespace VerfixMusic.Core.Services;
-
-public class InteractionHandlingService : DiscordShardedClientService
+public class InteractionHandlingService
 {
+    private readonly InteractionService _service;
+    private readonly DiscordShardedClient _client;
     private readonly IServiceProvider _provider;
-    private readonly InteractionService _interactionService;
-    private readonly IHostEnvironment _environment;
-    private readonly IConfiguration _configuration;
 
-    public InteractionHandlingService(DiscordShardedClient client, ILogger<DiscordShardedClientService> logger, IServiceProvider provider, InteractionService interactionService, IHostEnvironment environment, IConfiguration configuration) : base(client, logger)
+    public InteractionHandlingService(IServiceProvider services)
     {
-        _provider = provider;
-        _interactionService = interactionService;
-        _environment = environment;
-        _configuration = configuration;
+        _service = services.GetRequiredService<InteractionService>();
+        _client = services.GetRequiredService<DiscordShardedClient>();
+        _provider = services;
+
+        _service.Log += LogAsync;
+        _client.InteractionCreated += OnInteractionAsync;
+        _client.ShardReady += ReadyAsync;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    public async Task InitializeAsync()
     {
-        // Process the InteractionCreated payloads to execute Interactions commands
-        Client.InteractionCreated += HandleInteraction;
-
-        // Process the command execution results 
-        _interactionService.SlashCommandExecuted += SlashCommandExecuted;
-        _interactionService.ContextCommandExecuted += ContextCommandExecuted;
-        _interactionService.ComponentCommandExecuted += ComponentCommandExecuted;
-
-        await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), _provider);
-        await Client.WaitForReadyAsync(stoppingToken);
-
-        // If DOTNET_ENVIRONMENT is set to development, only register the commands to a single guild
-        if (_environment.IsDevelopment())
-            await _interactionService.RegisterCommandsToGuildAsync(_configuration.GetValue<ulong>("DevGuild"));
-        else
-            await _interactionService.RegisterCommandsGloballyAsync();
+        await _service.AddModulesAsync(typeof(InteractionHandlingService).Assembly, _provider);
     }
 
-    private Task ComponentCommandExecuted(ComponentCommandInfo commandInfo, IInteractionContext context, IResult result)
+    private async Task OnInteractionAsync(SocketInteraction interaction)
     {
-        if (!result.IsSuccess)
+        _ = Task.Run(async () =>
         {
-            switch (result.Error)
-            {
-                case InteractionCommandError.UnmetPrecondition:
-                    // implement
-                    break;
-                case InteractionCommandError.UnknownCommand:
-                    // implement
-                    break;
-                case InteractionCommandError.BadArgs:
-                    // implement
-                    break;
-                case InteractionCommandError.Exception:
-                    // implement
-                    break;
-                case InteractionCommandError.Unsuccessful:
-                    // implement
-                    break;
-                default:
-                    break;
-            }
-        }
+            var context = new ShardedInteractionContext(_client, interaction);
+            await _service.ExecuteCommandAsync(context, _provider);
+        });
+        await Task.CompletedTask;
+    }
+
+    private Task LogAsync(LogMessage log)
+    {
+        Console.WriteLine(log.ToString());
 
         return Task.CompletedTask;
     }
 
-    private Task ContextCommandExecuted(ContextCommandInfo context, IInteractionContext arg2, IResult result)
+    private async Task ReadyAsync(DiscordSocketClient _)
     {
-        if (!result.IsSuccess)
-        {
-            switch (result.Error)
-            {
-                case InteractionCommandError.UnmetPrecondition:
-                    // implement
-                    break;
-                case InteractionCommandError.UnknownCommand:
-                    // implement
-                    break;
-                case InteractionCommandError.BadArgs:
-                    // implement
-                    break;
-                case InteractionCommandError.Exception:
-                    // implement
-                    break;
-                case InteractionCommandError.Unsuccessful:
-                    // implement
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private Task SlashCommandExecuted(SlashCommandInfo commandInfo, IInteractionContext context, IResult result)
-    {
-        if (!result.IsSuccess)
-        {
-            switch (result.Error)
-            {
-                case InteractionCommandError.UnmetPrecondition:
-                    // implement
-                    break;
-                case InteractionCommandError.UnknownCommand:
-                    // implement
-                    break;
-                case InteractionCommandError.BadArgs:
-                    // implement
-                    break;
-                case InteractionCommandError.Exception:
-                    // implement
-                    break;
-                case InteractionCommandError.Unsuccessful:
-                    // implement
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private async Task HandleInteraction(SocketInteraction arg)
-    {
-        try
-        {
-            // Create an execution context that matches the generic type parameter of your InteractionModuleBase<T> modules
-            var ctx = new ShardedInteractionContext(Client, arg);
-            await _interactionService.ExecuteCommandAsync(ctx, _provider);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Exception occurred whilst attempting to handle interaction.");
-
-            if (arg.Type == InteractionType.ApplicationCommand)
-            {
-                var msg = await arg.GetOriginalResponseAsync();
-                await msg.DeleteAsync();
-            }
-
-        }
+#if DEBUG
+        await _service.RegisterCommandsToGuildAsync(1 /* implement */);
+#else
+            await _service.RegisterCommandsGloballyAsync();
+#endif
     }
 }
