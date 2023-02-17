@@ -57,8 +57,7 @@ public class AudioService
 
     private static Task OnUpdateReceivedAsync(UpdateEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        return arg.Player.TextChannel.SendMessageAsync(
-            $"Player update received: {arg.Position}/{arg.Track?.Duration}");
+        return Task.CompletedTask;
     }
 
     private static Task OnTrackStartAsync(TrackStartEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)

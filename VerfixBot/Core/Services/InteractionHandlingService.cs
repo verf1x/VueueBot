@@ -4,18 +4,21 @@ using Discord.Interactions;
 using Discord.WebSocket;
 using Discord;
 using Microsoft.Extensions.DependencyInjection;
+using Victoria.Node;
 
 public class InteractionHandlingService
 {
     private readonly InteractionService _service;
     private readonly DiscordShardedClient _client;
     private readonly IServiceProvider _provider;
+    private readonly LavaNode _lavaNode;
 
     public InteractionHandlingService(IServiceProvider services)
     {
         _service = services.GetRequiredService<InteractionService>();
         _client = services.GetRequiredService<DiscordShardedClient>();
         _provider = services;
+        _lavaNode = services.GetRequiredService<LavaNode>();
 
         _service.Log += LogAsync;
         _client.InteractionCreated += OnInteractionAsync;
