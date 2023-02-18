@@ -51,7 +51,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Leave")]
+    [Command("Leave", RunMode = RunMode.Async)]
     public async Task LeaveAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -60,7 +60,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             return;
         }
 
-        var voiceChannel = (Context.User as IVoiceState).VoiceChannel ?? player.VoiceChannel;
+        var voiceChannel = ((IVoiceState)Context.User).VoiceChannel ?? player.VoiceChannel;
         if (voiceChannel == null)
         {
             await ReplyAsync("Not sure which voice channel to disconnect from.");
@@ -78,7 +78,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Play")]
+    [Command("Play", RunMode = RunMode.Async)]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
         if (string.IsNullOrWhiteSpace(searchQuery))
@@ -136,7 +136,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         await player.PlayAsync(lavaTrack);
     }
 
-    [Command("Pause")]
+    [Command("Pause", RunMode = RunMode.Async)]
     public async Task PauseAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -162,7 +162,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Resume")]
+    [Command("Resume", RunMode = RunMode.Async)]
     public async Task ResumeAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -188,7 +188,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Stop")]
+    [Command("Stop", RunMode = RunMode.Async)]
     public async Task StopAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -214,7 +214,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Skip")]
+    [Command("Skip", RunMode = RunMode.Async)]
     public async Task SkipAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -257,7 +257,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Seek")]
+    [Command("Seek", RunMode = RunMode.Async)]
     public async Task SeekAsync(TimeSpan timeSpan)
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -283,7 +283,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Volume")]
+    [Command("Volume", RunMode = RunMode.Async)]
     public async Task VolumeAsync(ushort volume)
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -303,7 +303,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("NowPlaying"), Alias("Np")]
+    [Command("NowPlaying", RunMode = RunMode.Async), Alias("Np")]
     public async Task NowPlayingAsync()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -331,7 +331,6 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     }
 
     [Command("Genius", RunMode = RunMode.Async)]
-    [RequireOwner]
     public async Task ShowGeniusLyrics()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
@@ -372,7 +371,6 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     }
 
     [Command("OVH", RunMode = RunMode.Async)]
-    [RequireOwner]
     public async Task ShowOvhLyrics()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
