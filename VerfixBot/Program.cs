@@ -34,9 +34,7 @@ class Program
             client.ShardReady += ReadyAsync;
             client.Log += LogAsync;
 
-
-            await client.SetGameAsync("$play", type: ActivityType.Listening);
-
+            await client.SetGameAsync($"{ConfigManager.Config.Prefix}play", type: ActivityType.Listening);
 
             await services.GetRequiredService<InteractionHandlingService>()
                 .InitializeAsync();
@@ -56,7 +54,11 @@ class Program
                 .AddSingleton(new DiscordShardedClient(config))
                 .AddSingleton(new CommandService(new CommandServiceConfig
                 {
+#if DEBUG
                     LogLevel = LogSeverity.Debug,
+#else
+                    LogLevel = LogSeverity.Error,
+#endif
                     CaseSensitiveCommands = false,
                     DefaultRunMode = RunMode.Async,
                     IgnoreExtraArgs = true,

@@ -9,4 +9,5 @@ public struct BotConfig
 
     [JsonProperty("prefix")]
     public string Prefix { get; private set; }
+
 }
