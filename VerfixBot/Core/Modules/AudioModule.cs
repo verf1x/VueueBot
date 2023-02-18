@@ -4,6 +4,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using System.Text;
+using VerfixMusic.Common;
 using VerfixMusic.Core.Managers;
 using Victoria;
 using Victoria.Node;
@@ -23,67 +24,95 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         _audioService = audioService;
     }
 
-    [Command("Join", RunMode = RunMode.Async)]
+    [Command("Join")]
     public async Task JoinAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
 
         if (_lavaNode.HasPlayer(Context.Guild))
         {
-            await ReplyAsync("I'm already connected to a voice channel!");
+            embedBuilder.Title = $"I'm already connected to a voice channel!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         var voiceState = Context.User as IVoiceState;
         if (voiceState?.VoiceChannel == null)
         {
-            await ReplyAsync("You must be connected to a voice channel!");
+            embedBuilder.Title = $"You must be connected to a voice channel!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"Joined {voiceState.VoiceChannel.Name}!";
+            embedBuilder.AddField($"Bitrate", voiceState.VoiceChannel.Bitrate / 1000, true);
+
             await _lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
-            await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Leave", RunMode = RunMode.Async)]
     public async Task LeaveAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to any voice channels!");
+            embedBuilder.Title = "I'm not connected to any voice channels!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         var voiceChannel = ((IVoiceState)Context.User).VoiceChannel ?? player.VoiceChannel;
         if (voiceChannel == null)
         {
-            await ReplyAsync("Not sure which voice channel to disconnect from.");
+            embedBuilder.Title = "Not sure which voice channel to disconnect from.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"I've left {voiceChannel.Name}!";
+
             await _lavaNode.LeaveAsync(voiceChannel);
-            await ReplyAsync($"I've left {voiceChannel.Name}!");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
-    [Command("Play", RunMode = RunMode.Async)]
+    [Command("Play")]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
-            await ReplyAsync("Please provide search terms.");
+            embedBuilder.Title = "Please provide search terms.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -92,39 +121,60 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             var voiceState = Context.User as IVoiceState;
             if (voiceState?.VoiceChannel == null)
             {
-                await ReplyAsync("You must be connected to a voice channel!");
+                embedBuilder.Title = "You must be connected to a voice channel!";
+
+                await ReplyAsync(embed: embedBuilder.Build());
                 return;
             }
 
             try
             {
                 player = await _lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
-                await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
+
+                embedBuilder.Title = $"Joined {voiceState.VoiceChannel.Name}!";
+
+                await ReplyAsync(embed: embedBuilder.Build());
             }
             catch (Exception exception)
             {
-                await ReplyAsync(exception.Message);
+                embedBuilder.Color = Color.Red;
+                embedBuilder.Title = "Error!";
+                embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+                await ReplyAsync(embed: embedBuilder.Build());
             }
         }
 
         var searchResponse = await _lavaNode.SearchAsync(Uri.IsWellFormedUriString(searchQuery, UriKind.Absolute) ? SearchType.Direct : SearchType.YouTube, searchQuery);
         if (searchResponse.Status is SearchStatus.LoadFailed or SearchStatus.NoMatches)
         {
-            await ReplyAsync($"I wasn't able to find anything for `{searchQuery}`.");
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = $"I wasn't able to find anything for `{searchQuery}`.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (!string.IsNullOrWhiteSpace(searchResponse.Playlist.Name))
         {
+            embedBuilder.Title = $"Enqueued {searchResponse.Tracks.Count} songs.";
+
             player.Vueue.Enqueue(searchResponse.Tracks);
-            await ReplyAsync($"Enqueued {searchResponse.Tracks.Count} songs.");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         else
         {
             var track = searchResponse.Tracks.FirstOrDefault();
             player.Vueue.Enqueue(track);
+            await player.SetVolumeAsync(10);
 
-            await ReplyAsync($"Enqueued {track?.Title}");
+            var artwork = await track.FetchArtworkAsync();
+
+            embedBuilder.Title = $"Added to playlist:";
+            embedBuilder.WithImageUrl(artwork);
+            embedBuilder.AddField($"{track?.Title}", track?.Url, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
 
         if (player.PlayerState is PlayerState.Playing or PlayerState.Paused)
@@ -139,93 +189,135 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     [Command("Pause", RunMode = RunMode.Async)]
     public async Task PauseAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Playing)
         {
-            await ReplyAsync("I cannot pause when I'm not playing anything!");
+            embedBuilder.Title = "I cannot pause when I'm not playing anything!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"Paused: {player.Track.Title}";
+
             await player.PauseAsync();
-            await ReplyAsync($"Paused: {player.Track.Title}");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Resume", RunMode = RunMode.Async)]
     public async Task ResumeAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Paused)
         {
-            await ReplyAsync("I cannot resume when I'm not playing anything!");
+            embedBuilder.Title = "I cannot resume when I'm not playing anything!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"Resumed: {player.Track.Title}";
+
             await player.ResumeAsync();
-            await ReplyAsync($"Resumed: {player.Track.Title}");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Stop", RunMode = RunMode.Async)]
     public async Task StopAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState == PlayerState.Stopped)
         {
-            await ReplyAsync("Woaaah there, I can't stop the stopped forced.");
+            embedBuilder.Title = "Woaaah there, I can't stop the stopped forced.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = "No longer playing anything.";
+
             await player.StopAsync();
-            await ReplyAsync("No longer playing anything.");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Skip", RunMode = RunMode.Async)]
     public async Task SkipAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Playing)
         {
-            await ReplyAsync("Woaaah there, I can't skip when nothing is playing.");
+            embedBuilder.Title = "Woaaah there, I can't skip when nothing is playing.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -234,7 +326,9 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             .ToArray();
         if (_audioService.VoteQueue.Contains(Context.User.Id))
         {
-            await ReplyAsync("You can't vote again.");
+            embedBuilder.Title = "You can't vote again.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -242,86 +336,123 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         var percentage = _audioService.VoteQueue.Count / voiceChannelUsers.Length * 100;
         if (percentage < 85)
         {
-            await ReplyAsync("You need more than 85% votes to skip this song.");
+            embedBuilder.Title = "You need more than 85% votes to skip this song.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
             var (skipped, currenTrack) = await player.SkipAsync();
-            await ReplyAsync($"Skipped: {skipped.Title}\nNow Playing: {currenTrack.Title}");
+
+            embedBuilder.Title = $"Skipped: {skipped.Title}\nNow Playing: {currenTrack.Title}";
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Seek", RunMode = RunMode.Async)]
     public async Task SeekAsync(TimeSpan timeSpan)
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Playing)
         {
-            await ReplyAsync("Woaaah there, I can't seek when nothing is playing.");
+            embedBuilder.Title = "Woaaah there, I can't seek when nothing is playing.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"I've seeked `{player.Track.Title}` to {timeSpan}.";
+
             await player.SeekAsync(timeSpan);
-            await ReplyAsync($"I've seeked `{player.Track.Title}` to {timeSpan}.");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("Volume", RunMode = RunMode.Async)]
     public async Task VolumeAsync(ushort volume)
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         try
         {
+            embedBuilder.Title = $"I've changed the player volume to {volume}.";
+
             await player.SetVolumeAsync(volume);
-            await ReplyAsync($"I've changed the player volume to {volume}.");
+            await ReplyAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
-            await ReplyAsync(exception.Message);
+            embedBuilder.Color = Color.Red;
+            embedBuilder.Title = "Error!";
+            embedBuilder.AddField("Exception thrown", exception.Message, true);
+
+            await ReplyAsync(embed: embedBuilder.Build());
         }
     }
 
     [Command("NowPlaying", RunMode = RunMode.Async), Alias("Np")]
     public async Task NowPlayingAsync()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Playing)
         {
-            await ReplyAsync("Woaaah there, I'm not playing any tracks.");
+            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         var track = player.Track;
         var artwork = await track.FetchArtworkAsync();
 
-        var embed = new EmbedBuilder()
+        var embed = new VerfixEmbedBuilder()
             .WithAuthor(track.Author, Context.Client.CurrentUser.GetAvatarUrl(), track.Url)
             .WithTitle($"Now Playing: {track.Title}")
             .WithImageUrl(artwork)
@@ -333,22 +464,30 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     [Command("Genius", RunMode = RunMode.Async)]
     public async Task ShowGeniusLyrics()
     {
+        var embedBuilder = new VerfixEmbedBuilder();
+
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
-            await ReplyAsync("I'm not connected to a voice channel.");
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         if (player.PlayerState != PlayerState.Playing)
         {
-            await ReplyAsync("Woaaah there, I'm not playing any tracks.");
+            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
         var lyrics = await LyricsResolver.SearchGeniusAsync(player.Track);
         if (string.IsNullOrWhiteSpace(lyrics))
         {
-            await ReplyAsync($"No lyrics found for {player.Track.Title}");
+            embedBuilder.Title = $"No lyrics found for {player.Track.Title}";
+
+            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -365,48 +504,53 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             {
                 stringBuilder.AppendLine(line.TrimEnd('\n'));
             }
+
+            //embedBuilder.AddField("", line, true);
         }
 
+        embedBuilder.Title = $"Genius Lyrics";
+
+        //await ReplyAsync(embed: embedBuilder.Build());
         await ReplyAsync($"```{stringBuilder}```");
     }
 
-    [Command("OVH", RunMode = RunMode.Async)]
-    public async Task ShowOvhLyrics()
-    {
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
-        {
-            await ReplyAsync("I'm not connected to a voice channel.");
-            return;
-        }
+    //[Command("OVH", RunMode = RunMode.Async)]
+    //public async Task ShowOvhLyrics()
+    //{
+    //    if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+    //    {
+    //        await ReplyAsync("I'm not connected to a voice channel.");
+    //        return;
+    //    }
 
-        if (player.PlayerState != PlayerState.Playing)
-        {
-            await ReplyAsync("Woaaah there, I'm not playing any tracks.");
-            return;
-        }
+    //    if (player.PlayerState != PlayerState.Playing)
+    //    {
+    //        await ReplyAsync("Woaaah there, I'm not playing any tracks.");
+    //        return;
+    //    }
 
-        var lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
-        if (string.IsNullOrWhiteSpace(lyrics))
-        {
-            await ReplyAsync($"No lyrics found for {player.Track.Title}");
-            return;
-        }
+    //    var lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
+    //    if (string.IsNullOrWhiteSpace(lyrics))
+    //    {
+    //        await ReplyAsync($"No lyrics found for {player.Track.Title}");
+    //        return;
+    //    }
 
-        var splitLyrics = lyrics.Split(Environment.NewLine);
-        var stringBuilder = new StringBuilder();
-        foreach (var line in splitLyrics)
-        {
-            if (_range.Contains(stringBuilder.Length))
-            {
-                await ReplyAsync($"```{stringBuilder}```");
-                stringBuilder.Clear();
-            }
-            else
-            {
-                stringBuilder.AppendLine(line);
-            }
-        }
+    //    var splitLyrics = lyrics.Split(Environment.NewLine);
+    //    var stringBuilder = new StringBuilder();
+    //    foreach (var line in splitLyrics)
+    //    {
+    //        if (_range.Contains(stringBuilder.Length))
+    //        {
+    //            await ReplyAsync($"```{stringBuilder}```");
+    //            stringBuilder.Clear();
+    //        }
+    //        else
+    //        {
+    //            stringBuilder.AppendLine(line);
+    //        }
+    //    }
 
-        await ReplyAsync($"```{stringBuilder}```");
-    }
+    //    await ReplyAsync($"```{stringBuilder}```");
+    //}
 }

@@ -62,7 +62,7 @@ public class AudioService
 
     private static Task OnTrackStartAsync(TrackStartEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        return arg.Player.TextChannel.SendMessageAsync($"Started playing {arg.Track}.");
+        return Task.CompletedTask;
     }
 
     private static Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)

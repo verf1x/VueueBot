@@ -6,6 +6,7 @@ public class VerfixEmbedBuilder : EmbedBuilder
 {
     public VerfixEmbedBuilder()
     {
-        WithColor(new Color(0xDE7045));
+        WithColor(new Color(0xbcf542));
+        WithFooter($"{DateTime.UtcNow} UTC +00:00");
     }
 }
