@@ -88,7 +88,9 @@ public class AudioService
 
         if (!player.Vueue.TryDequeue(out var queueable))
         {
-            player.TextChannel.SendMessageAsync("Queue completed! Please add more tracks to rock n' roll!");
+            embed.Title = "Queue completed! Please add more tracks to rock n' roll!";
+
+            player.TextChannel.SendMessageAsync(embed: embed.Build());
             return Task.CompletedTask;
         }
 

@@ -24,7 +24,6 @@ public class MainModule : ModuleBase<ShardedCommandContext>
         var embed = new EmbedBuilder()
         {
             Title = $"{socketGuildUser?.Username}#{socketGuildUser?.Discriminator}",
-            Color = new Color(238, 62, 75),
             ThumbnailUrl = socketGuildUser?.GetAvatarUrl() ?? socketGuildUser?.GetDisplayAvatarUrl(),
         }
         .AddField("ID", socketGuildUser?.Id, true)
