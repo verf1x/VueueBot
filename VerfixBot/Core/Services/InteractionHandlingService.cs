@@ -49,6 +49,7 @@ public class InteractionHandlingService
 
     private async Task ReadyAsync(DiscordSocketClient _)
     {
+        //_lavaNode?.ConnectAsync();
 #if DEBUG
         await _service.RegisterCommandsToGuildAsync(1 /* implement */);
 #else
