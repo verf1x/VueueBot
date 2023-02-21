@@ -75,7 +75,7 @@ public class AudioService
         return Task.CompletedTask;
     }
 
-    private static Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
         var embed = new VerfixEmbedBuilder();
 
@@ -89,6 +89,9 @@ public class AudioService
         if (!player.Vueue.TryDequeue(out var queueable))
         {
             embed.Title = "Queue completed! Please add more tracks to rock n' roll!";
+
+            //var voiceChannel = player.VoiceChannel;
+            // _lavaNode.LeaveAsync(voiceChannel);
 
             player.TextChannel.SendMessageAsync(embed: embed.Build());
             return Task.CompletedTask;
