@@ -108,7 +108,7 @@ public class AudioService
         embed.Title = $"Now Playing:";
         embed.WithImageUrl(artwork.Result);
         embed.AddField($"{track?.Title}", track?.Url, true);
-
+         
         arg.Player.PlayAsync(track);
         arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
 

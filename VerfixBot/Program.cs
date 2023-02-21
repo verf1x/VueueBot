@@ -55,7 +55,7 @@ class Program
                 .AddSingleton(new CommandService(new CommandServiceConfig
                 {
 #if DEBUG
-                    LogLevel = LogSeverity.Debug,
+                    LogLevel = LogSeverity.Info,
 #else
                     LogLevel = LogSeverity.Error,
 #endif

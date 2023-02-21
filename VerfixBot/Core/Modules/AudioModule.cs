@@ -523,12 +523,12 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
 
         var track = player.Track;
         var artwork = await track.FetchArtworkAsync();
-
         var embed = new VerfixEmbedBuilder()
-            .WithAuthor(track.Author, Context.Client.CurrentUser.GetAvatarUrl(), track.Url)
-            .WithTitle($"Now Playing: {track.Title}")
+
+            .WithTitle($"Now Playing:")
+            .AddField($"{track.Title}", track.Url, true)
             .WithImageUrl(artwork)
-            .WithFooter($"{track.Position}/{track.Duration}");
+            .WithAuthor(track.Author, Context.Client.CurrentUser.GetAvatarUrl(), track.Url);
 
         await ReplyAsync(embed: embed.Build());
     }
