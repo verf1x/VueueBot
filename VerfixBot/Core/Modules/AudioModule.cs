@@ -630,47 +630,4 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
 
         player.Vueue.Enqueue(cycledTracks);
     }
-
-
-    [Command("OVH", RunMode = RunMode.Async)]
-    public async Task ShowOvhLyrics()
-    {
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
-        {
-            await ReplyAsync("I'm not connected to a voice channel.");
-            return;
-        }
-
-        if (player.PlayerState != PlayerState.Playing)
-        {
-            await ReplyAsync("Woaaah there, I'm not playing any tracks.");
-            return;
-        }
-
-        string lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
-        if (string.IsNullOrWhiteSpace(lyrics))
-        {
-            await ReplyAsync($"No lyrics found for {player.Track.Title}");
-            return;
-        }
-
-        var splitLyrics = lyrics.Split(Environment.NewLine);
-        var stringBuilder = new StringBuilder();
-        foreach (var line in splitLyrics)
-        {
-            if (_range.Contains(stringBuilder.Length))
-            {
-                await ReplyAsync($"```{stringBuilder}```");
-                stringBuilder.Clear();
-            }
-            else
-            {
-                stringBuilder.AppendLine(line);
-            }
-        }
-
-        await ReplyAsync($"```{stringBuilder}```");
-    }
-
-    string[] nikitas = new string[2];
 }
