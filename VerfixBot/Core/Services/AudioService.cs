@@ -90,9 +90,6 @@ public class AudioService
         {
             embed.Title = "Queue completed! Please add more tracks to rock n' roll!";
 
-            //var voiceChannel = player.VoiceChannel;
-            // _lavaNode.LeaveAsync(voiceChannel);
-
             player.TextChannel.SendMessageAsync(embed: embed.Build());
             return Task.CompletedTask;
         }

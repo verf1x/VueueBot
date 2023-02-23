@@ -103,77 +103,6 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    //[Command("Play")]
-    //public async Task PlayAsync([Remainder] string searchQuery)
-    //{
-    //    var embedBuilder = new VerfixEmbedBuilder();
-
-    //    if (string.IsNullOrWhiteSpace(searchQuery))
-    //    {
-    //        await ReplyAsync("Please provide search terms.");
-    //        return;
-    //    }
-
-    //    if (!_lavaNode.HasPlayer(Context.Guild))
-    //    {
-    //        await ReplyAsync("I'm not connected to a voice channel.");
-    //        return;
-    //    }
-
-    //    var queries = searchQuery.Split(' ');
-    //    foreach (var query in queries)
-    //    {
-    //        var searchResponse = await _lavaNode.SearchAsync(Uri.IsWellFormedUriString(searchQuery, UriKind.Absolute) ? SearchType.Direct : SearchType.YouTube, searchQuery);
-    //        if (searchResponse.Status is SearchStatus.LoadFailed or SearchStatus.NoMatches)
-    //        {
-    //            embedBuilder.Color = Color.Red;
-    //            embedBuilder.Title = $"I wasn't able to find anything for `{searchQuery}`.";
-
-    //            await ReplyAsync(embed: embedBuilder.Build());
-    //            return;
-    //        }
-
-    //        _lavaNode.TryGetPlayer(Context.Guild, out var player);
-
-    //        if (player.PlayerState == PlayerState.Playing || player.PlayerState == PlayerState.Paused)
-    //        {
-    //            if (!string.IsNullOrWhiteSpace(searchResponse.Playlist.Name))
-    //            {
-    //                foreach (var track in searchResponse.Tracks)
-    //                {
-    //                    player.Vueue.Enqueue(track);
-    //                }
-
-    //                await ReplyAsync($"Enqueued {searchResponse.Tracks.Count} tracks.");
-    //            }
-    //            else
-    //            {
-    //                var track = searchResponse.Tracks.FirstOrDefault();
-    //                player.Vueue.Enqueue(track);
-    //                await ReplyAsync($"Enqueued: {track?.Title}");
-    //            }
-    //        }
-    //        else
-    //        {
-    //            var track = searchResponse.Tracks.FirstOrDefault();
-
-    //            if (!string.IsNullOrWhiteSpace(searchResponse.Playlist.Name))
-    //            {
-    //                embedBuilder.Title = $"Enqueued {searchResponse.Tracks.Count} songs.";
-
-    //                player.Vueue.Enqueue(searchResponse.Tracks);
-    //                await ReplyAsync(embed: embedBuilder.Build());
-    //            }
-    //            else
-    //            {
-    //                await player.PlayAsync(track);
-    //                await player.SetVolumeAsync(40);
-    //                await ReplyAsync($"Now Playing: {track?.Title}");
-    //            }
-    //        }
-    //    }
-    //}
-
     [Command("Play")]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
@@ -576,13 +505,10 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             {
                 stringBuilder.AppendLine(line.TrimEnd('\n'));
             }
-
-            //embedBuilder.AddField("", line, true);
         }
 
         embedBuilder.Title = $"Genius Lyrics";
 
-        //await ReplyAsync(embed: embedBuilder.Build());
         await ReplyAsync($"```{stringBuilder}```");
     }
 

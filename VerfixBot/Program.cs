@@ -18,12 +18,16 @@ class Program
     {
         var config = new DiscordSocketConfig
         {
+#if DEBUG
             LogLevel = LogSeverity.Debug,
+#else
+            LogLevel = LogSeverity.Verbose,
+#endif
             AlwaysDownloadUsers = true,
             MessageCacheSize = 200,
             TotalShards = 2,
-            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers
-                                                   | GatewayIntents.GuildVoiceStates
+            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers|
+                             GatewayIntents.GuildVoiceStates
         };
 
         using (var services = ConfigureServices(config))
@@ -55,9 +59,9 @@ class Program
                 .AddSingleton(new CommandService(new CommandServiceConfig
                 {
 #if DEBUG
-                    LogLevel = LogSeverity.Info,
+                    LogLevel = LogSeverity.Debug,
 #else
-                    LogLevel = LogSeverity.Error,
+                    LogLevel = LogSeverity.Verbose,
 #endif
                     CaseSensitiveCommands = false,
                     DefaultRunMode = RunMode.Async,
