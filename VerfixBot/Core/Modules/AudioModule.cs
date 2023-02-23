@@ -586,43 +586,91 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         await ReplyAsync($"```{stringBuilder}```");
     }
 
-    //[Command("OVH", RunMode = RunMode.Async)]
-    //public async Task ShowOvhLyrics()
-    //{
-    //    if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
-    //    {
-    //        await ReplyAsync("I'm not connected to a voice channel.");
-    //        return;
-    //    }
+    [Command("Loop", RunMode = RunMode.Async), RequireOwner]
+    public async Task LoopCurrentTrack(int count)
+    {
+        var embedBuilder = new VerfixEmbedBuilder();
 
-    //    if (player.PlayerState != PlayerState.Playing)
-    //    {
-    //        await ReplyAsync("Woaaah there, I'm not playing any tracks.");
-    //        return;
-    //    }
+        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        {
+            embedBuilder.Title = "I'm not connected to a voice channel.";
 
-    //    var lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
-    //    if (string.IsNullOrWhiteSpace(lyrics))
-    //    {
-    //        await ReplyAsync($"No lyrics found for {player.Track.Title}");
-    //        return;
-    //    }
+            await ReplyAsync(embed: embedBuilder.Build());
+            return;
+        }
 
-    //    var splitLyrics = lyrics.Split(Environment.NewLine);
-    //    var stringBuilder = new StringBuilder();
-    //    foreach (var line in splitLyrics)
-    //    {
-    //        if (_range.Contains(stringBuilder.Length))
-    //        {
-    //            await ReplyAsync($"```{stringBuilder}```");
-    //            stringBuilder.Clear();
-    //        }
-    //        else
-    //        {
-    //            stringBuilder.AppendLine(line);
-    //        }
-    //    }
+        if (player.PlayerState != PlayerState.Playing)
+        {
+            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
 
-    //    await ReplyAsync($"```{stringBuilder}```");
-    //}
+            await ReplyAsync(embed: embedBuilder.Build());
+            return;
+        }
+
+        if(count <= 0)
+        {
+            embedBuilder.Title = $"I can't repeat this track for {count} times!";
+
+            await ReplyAsync(embed: embedBuilder.Build());
+            return;
+        }
+
+        var currentTrack = player.Track;
+
+        var artwork = await currentTrack.FetchArtworkAsync();
+
+        embedBuilder.Title = $"Cycled for {count} times:";
+        embedBuilder.AddField($"{currentTrack.Title}", currentTrack.Url, true);
+        embedBuilder.WithImageUrl(artwork);
+        embedBuilder.WithAuthor(currentTrack.Author, Context.Client.CurrentUser.GetAvatarUrl(), currentTrack.Url);
+
+        var cycledTracks = Enumerable.Repeat(currentTrack, count);
+
+        await ReplyAsync(embed: embedBuilder.Build());
+
+        player.Vueue.Enqueue(cycledTracks);
+    }
+
+
+    [Command("OVH", RunMode = RunMode.Async)]
+    public async Task ShowOvhLyrics()
+    {
+        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        {
+            await ReplyAsync("I'm not connected to a voice channel.");
+            return;
+        }
+
+        if (player.PlayerState != PlayerState.Playing)
+        {
+            await ReplyAsync("Woaaah there, I'm not playing any tracks.");
+            return;
+        }
+
+        string lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
+        if (string.IsNullOrWhiteSpace(lyrics))
+        {
+            await ReplyAsync($"No lyrics found for {player.Track.Title}");
+            return;
+        }
+
+        var splitLyrics = lyrics.Split(Environment.NewLine);
+        var stringBuilder = new StringBuilder();
+        foreach (var line in splitLyrics)
+        {
+            if (_range.Contains(stringBuilder.Length))
+            {
+                await ReplyAsync($"```{stringBuilder}```");
+                stringBuilder.Clear();
+            }
+            else
+            {
+                stringBuilder.AppendLine(line);
+            }
+        }
+
+        await ReplyAsync($"```{stringBuilder}```");
+    }
+
+    string[] nikitas = new string[2];
 }
