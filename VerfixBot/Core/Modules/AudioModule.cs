@@ -3,6 +3,8 @@
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using System;
+using System.Numerics;
 using System.Text;
 using VerfixMusic.Common;
 using VerfixMusic.Core.Managers;
@@ -56,11 +58,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -69,11 +67,9 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to any voice channels!";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -95,11 +91,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -137,11 +129,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             }
             catch (Exception exception)
             {
-                embedBuilder.Color = Color.Red;
-                embedBuilder.Title = "Error!";
-                embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-                await ReplyAsync(embed: embedBuilder.Build());
+                await CallException(embedBuilder, exception);
             }
         }
 
@@ -192,11 +180,9 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -217,11 +203,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -230,11 +212,9 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -255,11 +235,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -268,19 +244,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState == PlayerState.Stopped)
+        if (!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I can't stop the stopped forced.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -293,11 +264,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -306,19 +273,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if (!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I can't skip when nothing is playing.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -353,11 +315,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -366,19 +324,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if (!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I can't seek when nothing is playing.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -391,11 +344,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -404,11 +353,9 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -421,11 +368,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
         catch (Exception exception)
         {
-            embedBuilder.Color = Color.Red;
-            embedBuilder.Title = "Error!";
-            embedBuilder.AddField("Exception thrown", exception.Message, true);
-
-            await ReplyAsync(embed: embedBuilder.Build());
+            await CallException(embedBuilder, exception);
         }
     }
 
@@ -434,19 +377,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if (!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -467,19 +405,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if (!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -517,19 +450,14 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
-        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        var player = await TryGetLavaPlayer(embedBuilder);
+        if (player == null)
         {
-            embedBuilder.Title = "I'm not connected to a voice channel.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
-        if (player.PlayerState != PlayerState.Playing)
+        if(!await IsPlayerPlaying(embedBuilder, player))
         {
-            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
-
-            await ReplyAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -555,5 +483,40 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         await ReplyAsync(embed: embedBuilder.Build());
 
         player.Vueue.Enqueue(cycledTracks);
+    }
+
+    private async Task CallException(VerfixEmbedBuilder embedBuilder, Exception ex)
+    {
+        embedBuilder.Color = Color.Red;
+        embedBuilder.Title = "Error!";
+        embedBuilder.AddField("Exception thrown", ex.Message, true);
+
+        await ReplyAsync(embed: embedBuilder.Build());
+    }
+
+    private async Task<bool> IsPlayerPlaying(VerfixEmbedBuilder embedBuilder, LavaPlayer<LavaTrack> player)
+    {
+        if (player.PlayerState != PlayerState.Playing)
+        {
+            embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<LavaPlayer<LavaTrack>> TryGetLavaPlayer(VerfixEmbedBuilder embedBuilder)
+    {
+        if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
+        {
+            embedBuilder.Title = "I'm not connected to a voice channel.";
+
+            await ReplyAsync(embed: embedBuilder.Build());
+            return null;
+        }
+
+        return player;
     }
 }

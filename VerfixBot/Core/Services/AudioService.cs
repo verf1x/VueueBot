@@ -9,7 +9,6 @@ using Victoria;
 using Victoria.Node;
 using Victoria.Node.EventArgs;
 using Victoria.Player;
-using Victoria.Responses.Search;
 
 public class AudioService
 {
@@ -75,13 +74,14 @@ public class AudioService
         return Task.CompletedTask;
     }
 
-    private Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private async Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
         var embed = new VerfixEmbedBuilder();
 
         if (!(arg.Reason == TrackEndReason.Finished))
         {
-            return Task.CompletedTask;
+            await Task.CompletedTask;
+            return;
         }
 
         var player = arg.Player;
@@ -90,14 +90,14 @@ public class AudioService
         {
             embed.Title = "Queue completed! Please add more tracks to rock n' roll!";
 
-            player.TextChannel.SendMessageAsync(embed: embed.Build());
-            return Task.CompletedTask;
+            await player.TextChannel.SendMessageAsync(embed: embed.Build());
+            return;
         }
 
         if (!(queueable is LavaTrack track))
         {
-            player.TextChannel.SendMessageAsync("Next item in queue is not a track.");
-            return Task.CompletedTask;
+            await player.TextChannel.SendMessageAsync("Next item in queue is not a track.");
+            return;
         }
 
         var artwork = track.FetchArtworkAsync();
@@ -106,9 +106,10 @@ public class AudioService
         embed.WithImageUrl(artwork.Result);
         embed.AddField($"{track?.Title}", track?.Url, true);
          
-        arg.Player.PlayAsync(track);
-        arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
+        await arg.Player.PlayAsync(track);
+        await arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
 
-        return Task.CompletedTask;
+        await Task.CompletedTask;
+        return;
     }
 }

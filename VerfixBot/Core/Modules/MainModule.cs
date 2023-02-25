@@ -2,10 +2,37 @@
 
 using Discord;
 using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
+using VerfixMusic.Core.Managers;
 
-public class MainModule : ModuleBase<ShardedCommandContext>
+public class MainModule : InteractionModuleBase<ShardedInteractionContext>
 {
+    private InteractionService _interactionService;
+    private CommandHandlingService _commandHandlingService;
+
+    public MainModule(InteractionService interactionService, CommandHandlingService commandHandlingService)
+    {
+        _interactionService = interactionService;
+        _commandHandlingService = commandHandlingService;
+    }
+
+    [SlashCommand("8ball", "find your answer!")]
+    public async Task EightBall(string question)
+    {
+        var replies = new List<string>
+        {
+            "yes",
+            "no",
+            "maybe",
+            "hazzzzy...."
+        };
+
+        var answer = replies[new Random().Next(replies.Count - 1)];
+
+        await RespondAsync($"You asked: [**{question}**], and your answer is: [**{answer}**]");
+    }
+
     [Command("ping")]
     public async Task PingAsync()
     {
