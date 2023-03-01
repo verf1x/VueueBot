@@ -1,6 +1,5 @@
 ﻿namespace VerfixMusic.Core.Managers;
 
-using Discord;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;

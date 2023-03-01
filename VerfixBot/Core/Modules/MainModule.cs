@@ -1,63 +1,28 @@
 ﻿namespace VerfixMusic.Core.Modules;
 
-using Discord;
-using Discord.Commands;
+using VerfixMusic.Core.Services;
 using Discord.Interactions;
-using Discord.WebSocket;
-using VerfixMusic.Core.Managers;
+using VerfixMusic.Common;
 
 public class MainModule : InteractionModuleBase<ShardedInteractionContext>
 {
-    private InteractionService _interactionService;
-    private CommandHandlingService _commandHandlingService;
+    public InteractionService? Commands { get; set; }
 
-    public MainModule(InteractionService interactionService, CommandHandlingService commandHandlingService)
+    private InteractionHandler? _handler;
+
+    public MainModule(InteractionHandler handler)
     {
-        _interactionService = interactionService;
-        _commandHandlingService = commandHandlingService;
+        _handler = handler;
     }
 
-    [SlashCommand("8ball", "find your answer!")]
-    public async Task EightBall(string question)
-    {
-        var replies = new List<string>
-        {
-            "yes",
-            "no",
-            "maybe",
-            "hazzzzy...."
-        };
-
-        var answer = replies[new Random().Next(replies.Count - 1)];
-
-        await RespondAsync($"You asked: [**{question}**], and your answer is: [**{answer}**]");
-    }
-
-    [Command("ping")]
+    [SlashCommand("ping", "checks the status of the bot")]
     public async Task PingAsync()
     {
-        await Context.Channel.TriggerTypingAsync();
-        await Context.Channel.SendMessageAsync("Pong!");
-    }
-
-    [Command("info")]
-    public async Task InfoAsync(SocketGuildUser? socketGuildUser = null)
-    {
-        if (socketGuildUser == null)
+        var embed = new VerfixEmbedBuilder()
         {
-            socketGuildUser = Context.User as SocketGuildUser;
-        }
+            Title = "Pong!"
+        };
 
-        var embed = new EmbedBuilder()
-        {
-            Title = $"{socketGuildUser?.Username}#{socketGuildUser?.Discriminator}",
-            ThumbnailUrl = socketGuildUser?.GetAvatarUrl() ?? socketGuildUser?.GetDisplayAvatarUrl(),
-        }
-        .AddField("ID", socketGuildUser?.Id, true)
-        .AddField("Name", $"{socketGuildUser?.Username}#{socketGuildUser?.Discriminator}", true)
-        .AddField("Created at", socketGuildUser?.CreatedAt, true)
-        .Build();
-
-        await ReplyAsync(embed: embed);
+        await RespondAsync(embed: embed.Build());
     }
 }

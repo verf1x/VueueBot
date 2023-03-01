@@ -1,32 +1,35 @@
 ﻿namespace VerfixMusic.Core.Commands;
 
 using Discord;
-using Discord.Commands;
+using Discord.Interactions;
 using Discord.WebSocket;
 using System;
-using System.Numerics;
 using System.Text;
 using VerfixMusic.Common;
 using VerfixMusic.Core.Managers;
+using VerfixMusic.Core.Services;
 using Victoria;
 using Victoria.Node;
 using Victoria.Player;
 using Victoria.Resolvers;
 using Victoria.Responses.Search;
 
-public class MusicModule : ModuleBase<ShardedCommandContext>
+public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
 {
     private readonly LavaNode _lavaNode;
     private readonly AudioService _audioService;
+    private InteractionHandler? _handler;
     private static readonly IEnumerable<int> _range = Enumerable.Range(1900, 2000);
+    public InteractionService? Commands { get; set; }
 
-    public MusicModule(LavaNode lavaNode, AudioService audioService)
+    public MusicModule(LavaNode lavaNode, AudioService audioService, InteractionHandler handler)
     {
         _lavaNode = lavaNode;
         _audioService = audioService;
+        _handler = handler;
     }
 
-    [Command("Join")]
+    [SlashCommand("join", "VerfixMusic joins to the voice channel")]
     public async Task JoinAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -35,7 +38,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = $"I'm already connected to a voice channel!";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -44,7 +47,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = $"You must be connected to a voice channel!";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -54,7 +57,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.AddField($"Bitrate", voiceState.VoiceChannel.Bitrate / 1000, true);
 
             await _lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -62,7 +65,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Leave", RunMode = RunMode.Async)]
+    [SlashCommand("leave", "VerfixMusic leaves from voice channel", runMode: RunMode.Async)]
     public async Task LeaveAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -78,7 +81,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "Not sure which voice channel to disconnect from.";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -87,7 +90,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.Title = $"I've left {voiceChannel.Name}!";
 
             await _lavaNode.LeaveAsync(voiceChannel);
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -95,8 +98,8 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Play")]
-    public async Task PlayAsync([Remainder] string searchQuery)
+    [SlashCommand("play", "VerfixMusic plays media from YouTube")]
+    public async Task PlayAsync(string searchQuery)
     {
         var embedBuilder = new VerfixEmbedBuilder();
 
@@ -104,7 +107,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "Please provide search terms.";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -115,7 +118,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             {
                 embedBuilder.Title = "You must be connected to a voice channel!";
 
-                await ReplyAsync(embed: embedBuilder.Build());
+                await RespondAsync(embed: embedBuilder.Build());
                 return;
             }
 
@@ -125,7 +128,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
 
                 embedBuilder.Title = $"Joined {voiceState.VoiceChannel.Name}!";
 
-                await ReplyAsync(embed: embedBuilder.Build());
+                await RespondAsync(embed: embedBuilder.Build());
             }
             catch (Exception exception)
             {
@@ -175,7 +178,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         await player.SetVolumeAsync(30);
     }
 
-    [Command("Pause", RunMode = RunMode.Async)]
+    [SlashCommand("pause", "VerfixMusic pauses current track", runMode: RunMode.Async)]
     public async Task PauseAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -190,7 +193,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "I cannot pause when I'm not playing anything!";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -199,7 +202,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.Title = $"Paused: {player.Track.Title}";
 
             await player.PauseAsync();
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -207,7 +210,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Resume", RunMode = RunMode.Async)]
+    [SlashCommand("resume", "VerfixMusic resumes paused track", runMode: RunMode.Async)]
     public async Task ResumeAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -222,7 +225,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "I cannot resume when I'm not playing anything!";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -231,7 +234,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.Title = $"Resumed: {player.Track.Title}";
 
             await player.ResumeAsync();
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -239,7 +242,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Stop", RunMode = RunMode.Async)]
+    [SlashCommand("stop", "VerfixMusic stops playing media", runMode: RunMode.Async)]
     public async Task StopAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -268,7 +271,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Skip", RunMode = RunMode.Async)]
+    [SlashCommand("skip", "VerfixMusic skip current track if more than 85% votes to skip this track", runMode: RunMode.Async)]
     public async Task SkipAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -319,7 +322,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Seek", RunMode = RunMode.Async)]
+    [SlashCommand("seek", "VerfixMusic seek timeStamp", runMode: RunMode.Async)]
     public async Task SeekAsync(TimeSpan timeSpan)
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -340,7 +343,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.Title = $"I've seeked `{player.Track.Title}` to {timeSpan}.";
 
             await player.SeekAsync(timeSpan);
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -348,7 +351,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("Volume", RunMode = RunMode.Async)]
+    [SlashCommand("volume", "VerfixMusic change volume", runMode: RunMode.Async)]
     public async Task VolumeAsync(ushort volume)
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -364,7 +367,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             embedBuilder.Title = $"I've changed the player volume to {volume}.";
 
             await player.SetVolumeAsync(volume);
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
         }
         catch (Exception exception)
         {
@@ -372,7 +375,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         }
     }
 
-    [Command("NowPlaying"), Alias("Np")]
+    [SlashCommand("nowplaying", "VerfixMusic shows what is currently playing")]
     public async Task NowPlayingAsync()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -397,10 +400,10 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
             .WithImageUrl(artwork)
             .WithAuthor(track.Author, Context.Client.CurrentUser.GetAvatarUrl(), track.Url);
 
-        await ReplyAsync(embed: embed.Build());
+        await RespondAsync(embed: embed.Build());
     }
 
-    [Command("Genius", RunMode = RunMode.Async)]
+    [SlashCommand("genius", "VerfixMusic return genius lyrics for current song")]
     public async Task ShowGeniusLyrics()
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -421,7 +424,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = $"No lyrics found for {player.Track.Title}";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -431,7 +434,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             if (_range.Contains(stringBuilder.Length))
             {
-                await ReplyAsync($"```{stringBuilder}```");
+                await RespondAsync($"```{stringBuilder}```");
                 stringBuilder.Clear();
             }
             else
@@ -442,10 +445,10 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
 
         embedBuilder.Title = $"Genius Lyrics";
 
-        await ReplyAsync($"```{stringBuilder}```");
+        await RespondAsync($"```{stringBuilder}```");
     }
 
-    [Command("Loop", RunMode = RunMode.Async), RequireOwner]
+    [SlashCommand("loop", "VerfixMusic loops track for count times", runMode: RunMode.Async)]
     public async Task LoopCurrentTrack(int count)
     {
         var embedBuilder = new VerfixEmbedBuilder();
@@ -465,7 +468,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = $"I can't repeat this track for {count} times!";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return;
         }
 
@@ -480,7 +483,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
 
         var cycledTracks = Enumerable.Repeat(currentTrack, count);
 
-        await ReplyAsync(embed: embedBuilder.Build());
+        await RespondAsync(embed: embedBuilder.Build());
 
         player.Vueue.Enqueue(cycledTracks);
     }
@@ -491,7 +494,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         embedBuilder.Title = "Error!";
         embedBuilder.AddField("Exception thrown", ex.Message, true);
 
-        await ReplyAsync(embed: embedBuilder.Build());
+        await RespondAsync(embed: embedBuilder.Build());
     }
 
     private async Task<bool> IsPlayerPlaying(VerfixEmbedBuilder embedBuilder, LavaPlayer<LavaTrack> player)
@@ -500,7 +503,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "Woaaah there, I'm not playing any tracks.";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return false;
         }
 
@@ -513,7 +516,7 @@ public class MusicModule : ModuleBase<ShardedCommandContext>
         {
             embedBuilder.Title = "I'm not connected to a voice channel.";
 
-            await ReplyAsync(embed: embedBuilder.Build());
+            await RespondAsync(embed: embedBuilder.Build());
             return null;
         }
 

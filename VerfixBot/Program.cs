@@ -1,82 +1,70 @@
 ﻿namespace VerfixMusic;
 
 using Discord;
-using Discord.Commands;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using VerfixMusic.Core.Managers;
 using VerfixMusic.Core.Services;
 using Victoria.Node;
-using RunMode = Discord.Commands.RunMode;
 
 class Program
 {
-    private static LavaNode? _lavaNode;
-
-    private static async Task Main(string[] args)
+    private LavaNode? _lavaNode;
+    private DiscordShardedClient? _client;
+    private readonly IServiceProvider _services;
+    private readonly DiscordSocketConfig _socketConfig = new()
     {
-        var config = new DiscordSocketConfig
-        {
-#if DEBUG
-            LogLevel = LogSeverity.Debug,
-#else
-            LogLevel = LogSeverity.Verbose,
-#endif
-            AlwaysDownloadUsers = true,
-            MessageCacheSize = 200,
-            TotalShards = 2,
-            GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers|
+        LogLevel = IsDebug() ? LogSeverity.Debug :LogSeverity.Info,
+        AlwaysDownloadUsers = true,
+        MessageCacheSize = 200,
+        TotalShards = 2,
+        GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers |
                              GatewayIntents.GuildVoiceStates
-        };
+    };
 
-        using (var services = ConfigureServices(config))
-        {
-            var client = services.GetRequiredService<DiscordShardedClient>();
-            _lavaNode = services.GetRequiredService<LavaNode>();
-
-            client.ShardReady += ReadyAsync;
-            client.Log += LogAsync;
-
-            await client.SetGameAsync($"{ConfigManager.Config.Prefix}play", type: ActivityType.Listening);
-
-            await services.GetRequiredService<InteractionHandlingService>()
-                .InitializeAsync();
-
-            await services.GetRequiredService<CommandHandlingService>()
-                .InitializeAsync();
-
-            await client.LoginAsync(TokenType.Bot, ConfigManager.Config.Token);
-            await client.StartAsync();
-
-            await Task.Delay(Timeout.Infinite);
-        }
+    public Program()
+    {
+        _services = ConfigureServices();
     }
 
-    private static ServiceProvider ConfigureServices(DiscordSocketConfig config)
+    static void Main(params string[] args)
+        => new Program().MainAsync()
+            .GetAwaiter()
+            .GetResult();
+
+    private async Task MainAsync()
+    {
+        _client = _services.GetRequiredService<DiscordShardedClient>();
+        _lavaNode = _services.GetRequiredService<LavaNode>();
+
+        _client.Log += OnLogAsync;
+        _client.ShardReady += OnReadyAsync;
+
+        await _client.SetGameAsync("/play", type: ActivityType.Listening);
+
+        await _services.GetRequiredService<InteractionHandler>()
+            .InitializeAsync();
+
+        await _client.LoginAsync(TokenType.Bot, ConfigManager.Config.Token);
+        await _client.StartAsync();
+
+        await Task.Delay(Timeout.Infinite);
+    }
+
+    private ServiceProvider ConfigureServices()
             => new ServiceCollection()
-                .AddSingleton(new DiscordShardedClient(config))
-                .AddSingleton(new CommandService(new CommandServiceConfig
-                {
-#if DEBUG
-                    LogLevel = LogSeverity.Debug,
-#else
-                    LogLevel = LogSeverity.Verbose,
-#endif
-                    CaseSensitiveCommands = false,
-                    DefaultRunMode = RunMode.Async,
-                    IgnoreExtraArgs = true,
-                }))
+                .AddSingleton<DiscordShardedClient>()
+                .AddSingleton(_socketConfig)
                 .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordShardedClient>()))
-                .AddSingleton<CommandHandlingService>()
-                .AddSingleton<InteractionHandlingService>()
+                .AddSingleton<InteractionHandler>()
                 .AddSingleton<AudioService>()
                 .AddSingleton<LavaNode>()
                 .AddSingleton<NodeConfiguration>()
                 .AddLogging()
                 .BuildServiceProvider();
 
-    private static Task ReadyAsync(DiscordSocketClient shard)
+    private Task OnReadyAsync(DiscordSocketClient shard)
     {
         _lavaNode?.ConnectAsync();
 
@@ -84,9 +72,18 @@ class Program
         return Task.CompletedTask;
     }
 
-    private static Task LogAsync(LogMessage log)
+    private Task OnLogAsync(LogMessage log)
     {
         Console.WriteLine(log.ToString());
         return Task.CompletedTask;
+    }
+
+    public static bool IsDebug()
+    {
+#if DEBUG
+        return true;
+#else
+        return false;
+#endif
     }
 }
