@@ -3,9 +3,11 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using DiscordBot.Core.Handlers;
+using DiscordBot.Core.Services;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VerfixMusic.Core.Managers;
-using VerfixMusic.Core.Services;
 using Victoria.Node;
 
 class Program
@@ -13,12 +15,12 @@ class Program
     private LavaNode? _lavaNode;
     private DiscordShardedClient? _client;
     private readonly IServiceProvider _services;
+    private readonly LoggingService _logger;
     private readonly DiscordSocketConfig _socketConfig = new()
     {
         LogLevel = IsDebug() ? LogSeverity.Debug :LogSeverity.Info,
         AlwaysDownloadUsers = true,
-        MessageCacheSize = 200,
-        TotalShards = 2,
+        TotalShards = 1,
         GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent | GatewayIntents.GuildMembers |
                              GatewayIntents.GuildVoiceStates
     };
@@ -26,6 +28,7 @@ class Program
     public Program()
     {
         _services = ConfigureServices();
+        _logger = _services.GetRequiredService<LoggingService>();
     }
 
     static void Main(params string[] args)
@@ -49,18 +52,44 @@ class Program
         await _client.LoginAsync(TokenType.Bot, ConfigManager.Config.Token);
         await _client.StartAsync();
 
+        //await StartLavalinkExecAsync();
+
         await Task.Delay(Timeout.Infinite);
     }
 
+//    private async Task StartLavalinkExecAsync()
+//    {
+//#pragma warning disable CS8602
+//        var lavalinkPath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory())
+//            .Parent
+//            .Parent
+//            .Parent
+//            .FullName);
+//#pragma warning restore CS8602
+
+//        var processStartInfo = new ProcessStartInfo
+//        {
+//            FileName = "powershell.exe",
+//            WorkingDirectory = lavalinkPath,
+//            Arguments = $"Java -jar Lavalink.jar"
+//        };
+
+//        Process.Start(processStartInfo);
+
+//        await Task.Delay(-1);
+//    }
+
     private ServiceProvider ConfigureServices()
             => new ServiceCollection()
-                .AddSingleton<DiscordShardedClient>()
                 .AddSingleton(_socketConfig)
+                .AddSingleton<DiscordShardedClient>()
                 .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordShardedClient>()))
                 .AddSingleton<InteractionHandler>()
                 .AddSingleton<AudioService>()
                 .AddSingleton<LavaNode>()
                 .AddSingleton<NodeConfiguration>()
+                .AddSingleton<LoggingService>()
+                .AddSingleton<EmbedHandler>()
                 .AddLogging()
                 .BuildServiceProvider();
 
@@ -68,14 +97,13 @@ class Program
     {
         _lavaNode?.ConnectAsync();
 
-        Console.WriteLine($"Shard Number {shard.ShardId} is connected and ready!");
+        shard.Log += OnLogAsync;
         return Task.CompletedTask;
     }
 
-    private Task OnLogAsync(LogMessage log)
+    private async Task OnLogAsync(LogMessage log)
     {
-        Console.WriteLine(log.ToString());
-        return Task.CompletedTask;
+        await _logger.LogAsync(log.Source, log.Severity, log.Message);
     }
 
     public static bool IsDebug()

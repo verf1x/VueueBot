@@ -35,7 +35,7 @@ public class AudioService
 
     private static Task OnTrackExceptionAsync(TrackExceptionEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        var embed = new VerfixEmbedBuilder();
+        var embed = new CustomEmbedBuilder();
         embed.Title = $"{arg.Track} has been requeued because it threw an exception.";
 
         arg.Player.Vueue.Enqueue(arg.Track);
@@ -44,7 +44,7 @@ public class AudioService
 
     private static Task OnTrackStuckAsync(TrackStuckEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        var embed = new VerfixEmbedBuilder();
+        var embed = new CustomEmbedBuilder();
         embed.Title = $"{arg.Track} has been requeued because it got stuck.";
 
         arg.Player.Vueue.Enqueue(arg.Track);
@@ -75,8 +75,6 @@ public class AudioService
 
     private async Task OnTrackEndAsync(TrackEndEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        var embed = new VerfixEmbedBuilder();
-
         if (!(arg.Reason == TrackEndReason.Finished))
         {
             await Task.CompletedTask;
@@ -87,26 +85,14 @@ public class AudioService
 
         if (!player.Vueue.TryDequeue(out var queueable))
         {
-            embed.Title = "Queue completed! Please add more tracks to rock n' roll!";
-
-            await player.TextChannel.SendMessageAsync(embed: embed.Build());
             return;
         }
 
         if (!(queueable is LavaTrack track))
         {
-            await player.TextChannel.SendMessageAsync("Next item in queue is not a track.");
             return;
         }
-
-        var artwork = track.FetchArtworkAsync();
-
-        embed.Title = $"Now Playing:";
-        embed.WithImageUrl(artwork.Result);
-        embed.AddField($"{track?.Title}", track?.Url, true);
-         
         await arg.Player.PlayAsync(track);
-        await arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
 
         await Task.CompletedTask;
         return;
