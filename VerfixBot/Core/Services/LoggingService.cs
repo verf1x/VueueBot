@@ -1,115 +1,96 @@
-﻿using Discord;
+﻿namespace DiscordBot.Core.Services;
 
-namespace DiscordBot.Core.Services
+public class LoggingService
 {
-    public class LoggingService
+    public async Task LogAsync(string src, LogSeverity severity, string message, Exception exception = null)
     {
-        public async Task LogAsync(string src, LogSeverity severity, string message, Exception exception = null)
+        if (severity.Equals(null))
         {
-            if (severity.Equals(null))
-            {
-                severity = LogSeverity.Warning;
-            }
-            await Append($"{GetSeverityString(severity)}", GetConsoleColor(severity));
-            await Append($" [{SourceToString(src)}] ", ConsoleColor.DarkGray);
-
-            if (!string.IsNullOrWhiteSpace(message))
-                await Append($"{message}\n", ConsoleColor.White);
-            else if (exception == null)
-            {
-                await Append("Uknown Exception. Exception Returned Null.\n", ConsoleColor.DarkRed);
-            }
-            else if (exception.Message == null)
-                await Append($"Unknownk \n{exception.StackTrace}\n", GetConsoleColor(severity));
-            else
-                await Append($"{exception.Message ?? "Unknownk"}\n{exception.StackTrace ?? "Unknown"}\n", GetConsoleColor(severity));
+            severity = LogSeverity.Warning;
         }
+        await AppendAsync($"{GetSeverityString(severity)}", GetConsoleColor(severity));
+        await AppendAsync($" [{SourceToString(src)}] ", ConsoleColor.DarkGray);
 
-        public async Task LogCriticalAsync(string source, string message, Exception? exc = null)
+        if (!string.IsNullOrWhiteSpace(message))
         {
-            await LogAsync(source, LogSeverity.Critical, message, exc);
+            await AppendAsync($"{message}\n", ConsoleColor.White);
         }
-
-        public async Task LogInformationAsync(string source, string message)
+        else if (exception == null)
         {
-            await LogAsync(source, LogSeverity.Info, message);
+            await AppendAsync("Uknown Exception. Exception Returned Null.\n", ConsoleColor.DarkRed);
         }
-
-        private async Task Append(string message, ConsoleColor color)
+        else if (exception.Message == null)
         {
-            await Task.Run(() => {
-                Console.ForegroundColor = color;
-                Console.Write(message);
-            });
+            await AppendAsync($"Unknownk \n{exception.StackTrace}\n", GetConsoleColor(severity));
         }
-
-        private string SourceToString(string src)
+        else
         {
-            switch (src.ToLower())
-            {
-                case "discord":
-                    return "DISCD";
-                case "victoria":
-                    return "VICTR";
-                case "audio":
-                    return "AUDIO";
-                case "admin":
-                    return "ADMIN";
-                case "gateway":
-                    return "GTWAY";
-                case "blacklist":
-                    return "BLAKL";
-                case "lavanode_0_socket":
-                    return "LAVAS";
-                case "lavanode_0":
-                    return "LAVA#";
-                case "rest":
-                    return "REST";
-                case "bot":
-                    return "BOTWN";
-                default:
-                    return src;
-            }
+            await AppendAsync($"{exception.Message ?? "Unknownk"}\n{exception.StackTrace ?? "Unknown"}\n", GetConsoleColor(severity));
         }
+    }
 
-        private string GetSeverityString(LogSeverity severity)
-        {
-            switch (severity)
-            {
-                case LogSeverity.Critical:
-                    return "CRIT";
-                case LogSeverity.Debug:
-                    return "DBUG";
-                case LogSeverity.Error:
-                    return "EROR";
-                case LogSeverity.Info:
-                    return "INFO";
-                case LogSeverity.Verbose:
-                    return "VERB";
-                case LogSeverity.Warning:
-                    return "WARN";
-                default: return "UNKN";
-            }
-        }
+    public async Task LogCriticalAsync(string source, string message, Exception exc = null)
+    {
+        await LogAsync(source, LogSeverity.Critical, message, exc);
+    }
 
-        private ConsoleColor GetConsoleColor(LogSeverity severity)
+    public async Task LogInformationAsync(string source, string message)
+    {
+        await LogAsync(source, LogSeverity.Info, message);
+    }
+
+    private async Task AppendAsync(string message, ConsoleColor color)
+    {
+        await Task.Run(() =>
+               {
+                   Console.ForegroundColor = color;
+                   Console.Write(message);
+               });
+    }
+
+    private string SourceToString(string src)
+    {
+        return src.ToLower() switch
         {
-            switch (severity)
-            {
-                case LogSeverity.Critical:
-                    return ConsoleColor.Red;
-                case LogSeverity.Debug:
-                    return ConsoleColor.Magenta;
-                case LogSeverity.Error:
-                    return ConsoleColor.DarkRed;
-                case LogSeverity.Info:
-                    return ConsoleColor.Green;
-                case LogSeverity.Verbose:
-                    return ConsoleColor.DarkCyan;
-                case LogSeverity.Warning:
-                    return ConsoleColor.Yellow;
-                default: return ConsoleColor.White;
-            }
-        }
+            "discord"           => "DISCD",
+            "victoria"          => "VICTR",
+            "audio"             => "AUDIO",
+            "admin"             => "ADMIN",
+            "gateway"           => "GTWAY",
+            "blacklist"         => "BLAKL",
+            "lavanode_0_socket" => "LAVAS",
+            "lavanode_0"        => "LAVA#",
+            "rest"              => "REST",
+            "bot"               => "BOTWN",
+            _ => src,
+        };
+    }
+
+    private string GetSeverityString(LogSeverity severity)
+    {
+        return severity switch
+        {
+            LogSeverity.Critical => "CRIT",
+            LogSeverity.Debug    => "DBUG",
+            LogSeverity.Error    => "EROR",
+            LogSeverity.Info     => "INFO",
+            LogSeverity.Verbose  => "VERB",
+            LogSeverity.Warning  => "WARN",
+            _ => "UNKN",
+        };
+    }
+
+    private ConsoleColor GetConsoleColor(LogSeverity severity)
+    {
+        return severity switch
+        {
+            LogSeverity.Critical => ConsoleColor.Red,
+            LogSeverity.Debug    => ConsoleColor.Magenta,
+            LogSeverity.Error    => ConsoleColor.DarkRed,
+            LogSeverity.Info     => ConsoleColor.Green,
+            LogSeverity.Verbose  => ConsoleColor.DarkCyan,
+            LogSeverity.Warning  => ConsoleColor.Yellow,
+            _ => ConsoleColor.White,
+        };
     }
 }

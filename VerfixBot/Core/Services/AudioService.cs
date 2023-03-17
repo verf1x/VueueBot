@@ -3,8 +3,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
-using VerfixMusic.Common;
-using Victoria;
 using Victoria.Node;
 using Victoria.Node.EventArgs;
 using Victoria.Player;
@@ -25,50 +23,46 @@ public class AudioService
         VoteQueue = new HashSet<ulong>();
 
         _lavaNode.OnTrackEnd += OnTrackEndAsync;
-        _lavaNode.OnTrackStart += OnTrackStartAsync;
-        _lavaNode.OnStatsReceived += OnStatsReceivedAsync;
-        _lavaNode.OnUpdateReceived += OnUpdateReceivedAsync;
-        _lavaNode.OnWebSocketClosed += OnWebSocketClosedAsync;
-        _lavaNode.OnTrackStuck += OnTrackStuckAsync;
-        _lavaNode.OnTrackException += OnTrackExceptionAsync;
+        _lavaNode.OnTrackStart += OnTrackStart;
+        _lavaNode.OnStatsReceived += OnStatsReceived;
+        _lavaNode.OnUpdateReceived += OnUpdateReceived;
+        _lavaNode.OnWebSocketClosed += OnWebSocketClosed;
+        _lavaNode.OnTrackStuck += OnTrackStuck;
+        _lavaNode.OnTrackException += OnTrackException;
     }
 
-    private static Task OnTrackExceptionAsync(TrackExceptionEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private static Task OnTrackException(TrackExceptionEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        var embed = new CustomEmbedBuilder();
-        embed.Title = $"{arg.Track} has been requeued because it threw an exception.";
-
-        arg.Player.Vueue.Enqueue(arg.Track);
-        return arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
+        //arg.Player.Vueue.Enqueue(arg.Track);
+        //return arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
+        return Task.CompletedTask;
     }
 
-    private static Task OnTrackStuckAsync(TrackStuckEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private static Task OnTrackStuck(TrackStuckEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
-        var embed = new CustomEmbedBuilder();
-        embed.Title = $"{arg.Track} has been requeued because it got stuck.";
-
-        arg.Player.Vueue.Enqueue(arg.Track);
-        return arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
+        //arg.Player.Vueue.Enqueue(arg.Track);
+        //return arg.Player.TextChannel.SendMessageAsync(embed: embed.Build());
+        return Task.CompletedTask;
     }
 
-    private Task OnWebSocketClosedAsync(WebSocketClosedEventArg arg)
+    private Task OnWebSocketClosed(WebSocketClosedEventArg arg)
     {
         _logger.LogCritical($"{arg.Code} {arg.Reason}");
         return Task.CompletedTask;
     }
 
-    private Task OnStatsReceivedAsync(StatsEventArg arg)
+    private Task OnStatsReceived(StatsEventArg arg)
     {
         _logger.LogInformation(JsonSerializer.Serialize(arg));
         return Task.CompletedTask;
     }
 
-    private static Task OnUpdateReceivedAsync(UpdateEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private static Task OnUpdateReceived(UpdateEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
         return Task.CompletedTask;
     }
 
-    private static Task OnTrackStartAsync(TrackStartEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
+    private static Task OnTrackStart(TrackStartEventArg<LavaPlayer<LavaTrack>, LavaTrack> arg)
     {
         return Task.CompletedTask;
     }
@@ -88,7 +82,7 @@ public class AudioService
             return;
         }
 
-        if (!(queueable is LavaTrack track))
+        if (queueable is not LavaTrack track)
         {
             return;
         }

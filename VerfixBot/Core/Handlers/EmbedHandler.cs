@@ -1,26 +1,23 @@
 ﻿namespace DiscordBot.Core.Handlers;
 
-using Discord;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 public class EmbedHandler
 {
-    private const UInt32 SUCCESS_COLOR = 0x1CB012;
-    private const UInt32 ERROR_COLOR = 0xF70202;
-    private const UInt32 MEDIA_COLOR = 0xF70202;
-    private const UInt32 WARNING_COLOR = 0xF79902;
-    private const UInt32 DEFAULT_MESSAGE_COLOR = 0xFF94E8;
+    private const uint SuccessColor        = 0x1CB012;
+    private const uint ErrorColor          = 0xF70202;
+    private const uint MediaColor          = 0xF70202;
+    private const uint WarningColor        = 0xF79902;
+    private const uint DefaultMessageColor = 0xFF94E8;
+    private const uint LyricsColor         = 0xA200ff;
 
     public async Task<Embed> CreateWarningEmbedAsync(string description) 
         => await Task.Run(() 
             => new EmbedBuilder()
                  .WithTitle("Oops...")
                  .WithDescription(description)
-                 .WithColor(WARNING_COLOR)
+                 .WithColor(WarningColor)
                  .WithCurrentTimestamp()
                  .WithCurrentTimestamp().Build());
 
@@ -29,17 +26,17 @@ public class EmbedHandler
             => new EmbedBuilder()
                 .WithTitle("Joined to voice channel:")
                 .WithDescription(voiceChannelName)
-                .WithColor(SUCCESS_COLOR)
+                .WithColor(SuccessColor)
                 .AddField($"Bitrate:", voicechannelBitrate / 1000, false)
                 .WithCurrentTimestamp()
                 .Build());
 
-    public async Task<Embed> CreateExceptionEmbedAsync(string? source, string message)
+    public async Task<Embed> CreateExceptionEmbedAsync(string source, string message)
         => await Task.Run(()
             => new EmbedBuilder()
                 .WithTitle("Fatal error:")
                 .WithDescription(message)
-                .WithColor(ERROR_COLOR)
+                .WithColor(ErrorColor)
                 .AddField($"From source:", source, false)
                 .WithCurrentTimestamp()
                 .Build());
@@ -49,7 +46,7 @@ public class EmbedHandler
             => new EmbedBuilder()
                 .WithTitle("Success!")
                 .WithDescription(successMessage)
-                .WithColor(SUCCESS_COLOR)
+                .WithColor(SuccessColor)
                 .WithCurrentTimestamp()
                 .Build());
 
@@ -57,14 +54,24 @@ public class EmbedHandler
         => await Task.Run(() 
             => new EmbedBuilder()
                 .WithTitle(title)
-                .WithColor(MEDIA_COLOR)
+                .WithColor(MediaColor)
                 .WithImageUrl(artwork)
                 .AddField(trackTitle, trackUrl, true)
                 .WithFooter("YouTube")
                 .WithCurrentTimestamp()
                 .Build());
 
-    //public async Task<Embed> CreateLyricsEmbedAsync(StringBuilder lyrics)
-    //    => await Task.Run(()
-    //        => new EmbedBuilder()        
+    //public async Task<Embed> CreateHelpEmbedAsync<T>(string moduleName, IReadOnlyCollection<T> slashCommands)
+    //    where T : CommandInfo<T> 
+    //{
+
+    //}
+
+    public async Task<Embed> CreateLyricsEmbedAsync(StringBuilder lyrics, string trackName)
+        => await Task.Run(()
+            => new EmbedBuilder()
+                .AddField($"{trackName} lyrics:", lyrics)
+                .WithColor(LyricsColor)
+                .WithCurrentTimestamp()
+                .Build());
 }

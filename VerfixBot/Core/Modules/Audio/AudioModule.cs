@@ -1,39 +1,30 @@
-﻿namespace VerfixMusic.Core.Commands;
+﻿namespace DiscordBot.Core.Modules;
 
-using Discord;
 using Discord.Interactions;
-using Discord.WebSocket;
 using DiscordBot.Core.Handlers;
-using System;
+using System.Text;
 using VerfixMusic.Core.Managers;
 using Victoria;
 using Victoria.Node;
 using Victoria.Player;
+using Victoria.Resolvers;
 using Victoria.Responses.Search;
 
-public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
+public class AudioModule : InteractionModuleBase<ShardedInteractionContext>
 {
-    #region Fields
     private readonly LavaNode _lavaNode;
     private readonly AudioService _audioService;
-    private InteractionHandler? _handler;
     private readonly EmbedHandler _embedHandler;
-    private static readonly IEnumerable<int> _range = Enumerable.Range(1900, 2000);
-    #endregion
+    private readonly IEnumerable<int> _range = Enumerable.Range(1900, 2000);
 
-    #region Properties
-    public InteractionService? Commands { get; set; }
-    #endregion
+    public InteractionService Commands { get; set; }
 
-    #region Ctor
-    public MusicModule(LavaNode lavaNode, AudioService audioService, InteractionHandler handler, EmbedHandler embedHandler)
+    public AudioModule(LavaNode lavaNode, AudioService audioService, EmbedHandler embedHandler)
     {
         _lavaNode = lavaNode;
         _audioService = audioService;
-        _handler = handler;
         _embedHandler = embedHandler;
     }
-    #endregion
 
     [SlashCommand("join", "Joins to the voice channel")]
     public async Task JoinAsync()
@@ -63,7 +54,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("leave", "Leaves from voice channel", runMode: RunMode.Async)]
+    [SlashCommand("leave", "Leave a voice channel", runMode: RunMode.Async)]
     public async Task LeaveAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -90,10 +81,9 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("play", "Plays media from YouTube")]
+    [SlashCommand("play", "Play a song")]
     public async Task PlayAsync(string searchQuery)
     {
-
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
             await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("Please provide search terms."));
@@ -152,7 +142,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         await player.SetVolumeAsync(30);
     }
 
-    [SlashCommand("pause", "Pauses current track", runMode: RunMode.Async)]
+    [SlashCommand("pause", "Pause playing song", runMode: RunMode.Async)]
     public async Task PauseAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -178,7 +168,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("resume", "Resumes paused track", runMode: RunMode.Async)]
+    [SlashCommand("resume", "Resume paused track", runMode: RunMode.Async)]
     public async Task ResumeAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -204,7 +194,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("stop", "Stops playing media", runMode: RunMode.Async)]
+    [SlashCommand("stop", "Stop playing song", runMode: RunMode.Async)]
     public async Task StopAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -229,7 +219,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("skip", "Skip current track if more than 50% votes to skip this track", runMode: RunMode.Async)]
+    [SlashCommand("skip", "Skip a song", runMode: RunMode.Async)]
     public async Task SkipAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -300,7 +290,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
     //    }
     //}
 
-    [SlashCommand("volume", "Change media player volume", runMode: RunMode.Async)]
+    [SlashCommand("volume", "Change song volume", runMode: RunMode.Async)]
     public async Task SetVolumeAsync(ushort volume)
     {
         var player = await TryGetLavaPlayer();
@@ -320,7 +310,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         }
     }
 
-    [SlashCommand("nowplaying", "Shows what is currently playing")]
+    [SlashCommand("nowplaying", "Show what is currently playing")]
     public async Task NowPlayingAsync()
     {
         var player = await TryGetLavaPlayer();
@@ -340,7 +330,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync($"Now Playing:", artwork, track.Title, track.Url));
     }
 
-    //[SlashCommand("genius", "Returns genius lyrics for current song")]
+    //[SlashCommand("genius", "genius lyrics for current song")]
     //public async Task ShowGeniusLyrics()
     //{
     //    var player = await TryGetLavaPlayer();
@@ -354,7 +344,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
     //        return;
     //    }
 
-    //    var lyrics = await LyricsResolver.SearchGeniusAsync(player.Track);
+    //    var lyrics = await LyricsResolver.SearchOvhAsync(player.Track);
     //    if (string.IsNullOrWhiteSpace(lyrics))
     //    {
     //        await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync($"No lyrics found for {player.Track.Title}"));
@@ -376,41 +366,41 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
     //        }
     //    }
 
-    //    embedBuilder.Title = $"Genius Lyrics";
+    //    //embedBuilder.Title = $"Genius Lyrics";
 
     //    await RespondAsync($"```{stringBuilder}```");
     //}
 
-    [SlashCommand("loop", "Loops track for count times", runMode: RunMode.Async)]
-    public async Task LoopCurrentTrack(int count)
-    {
-        count--;
+    //[SlashCommand("loop", "Loop track", runMode: RunMode.Async)]
+    //public async Task LoopCurrentTrack(int loops)
+    //{
+    //    loops--;
 
-        var player = await TryGetLavaPlayer();
-        if (player is null)
-        {
-            return;
-        }
+    //    var player = await TryGetLavaPlayer();
+    //    if (player is null)
+    //    {
+    //        return;
+    //    }
 
-        if (!await IsPlayerPlaying(player))
-        {
-            return;
-        }
+    //    if (!await IsPlayerPlaying(player))
+    //    {
+    //        return;
+    //    }
 
-        if (count <= 0)
-        {
-            await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync($"I can't repeat this track for {count} times!"));
-            return;
-        }
+    //    if (loops <= 0)
+    //    {
+    //        await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync($"I can't repeat this track for {loops} times!"));
+    //        return;
+    //    }
 
-        var currentTrack = player.Track;
-        var artwork = await currentTrack.FetchArtworkAsync();
-        var cycledTracks = Enumerable.Repeat(currentTrack, count);
+    //    var currentTrack = player.Track;
+    //    var artwork = await currentTrack.FetchArtworkAsync();
+    //    var cycledTracks = Enumerable.Repeat(currentTrack, loops);
 
-        await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync($"Cycled for {count} times:", artwork, currentTrack.Title, currentTrack.Url));
+    //    await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync($"Cycled for {loops} times:", artwork, currentTrack.Title, currentTrack.Url));
 
-        player.Vueue.Enqueue(cycledTracks);
-    }
+    //    player.Vueue.Enqueue(cycledTracks);
+    //}
 
     private async Task<bool> IsPlayerPlaying(LavaPlayer<LavaTrack> player)
     {
@@ -423,7 +413,7 @@ public class MusicModule : InteractionModuleBase<ShardedInteractionContext>
         return true;
     }
 
-    private async Task<LavaPlayer<LavaTrack>?> TryGetLavaPlayer()
+    private async Task<LavaPlayer<LavaTrack>> TryGetLavaPlayer()
     {
         if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
         {
