@@ -35,7 +35,7 @@ public class EmbedHandler
         => await Task.Run(()
             => new EmbedBuilder()
                 .WithTitle("Fatal error:")
-                .WithDescription(ex.Message)
+                .WithDescription(ex.ToString())
                 .WithColor(ErrorColor)
                 .AddField($"From source:", ex.Source, false)
                 .WithCurrentTimestamp()

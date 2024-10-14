@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace VueueBot.Core.Modules.Audio;
+namespace VueueBot.Core.Modules;
 
 public class GeneralModule : InteractionModuleBase<ShardedInteractionContext>
 {
@@ -8,6 +8,13 @@ public class GeneralModule : InteractionModuleBase<ShardedInteractionContext>
 
     public GeneralModule()
     {
+    }
+
+    [SlashCommand("ping", "respond to ping")]
+    [RequireOwner]
+    public async Task PingAsync()
+    {
+        await RespondAsync("Pong!");
     }
 
     [SlashCommand("help", "info about commands")]

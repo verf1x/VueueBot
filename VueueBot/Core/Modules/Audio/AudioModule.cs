@@ -6,22 +6,14 @@ using VueueBot.Core.Managers;
 
 namespace VueueBot.Core.Modules.Audio;
 
-public class AudioModule(LavaNode<LavaPlayer<LavaTrack>, LavaTrack> _lavaNode,
-    AudioService _audioService, EmbedHandler _embedHandler) : InteractionModuleBase<ShardedInteractionContext>
+public class AudioModule(
+    LavaNode<LavaPlayer<LavaTrack>, LavaTrack> _lavaNode,
+    AudioService _audioService,
+    EmbedHandler _embedHandler) : InteractionModuleBase<ShardedInteractionContext>
 {
-    //private readonly LavaNode _lavaNode;
-    //private readonly AudioService _audioService;
-    //private readonly EmbedHandler _embedHandler;
     private readonly IEnumerable<int> _range = Enumerable.Range(1900, 2000);
 
     public InteractionService Commands { get; set; }
-
-    //public AudioModule(LavaNode lavaNode, AudioService audioService, EmbedHandler embedHandler)
-    //{
-    //    _lavaNode = lavaNode;
-    //    _audioService = audioService;
-    //    _embedHandler = embedHandler;
-    //}
 
     [SlashCommand("join", "Joins to the voice channel")]
     public async Task JoinAsync()
@@ -46,32 +38,26 @@ public class AudioModule(LavaNode<LavaPlayer<LavaTrack>, LavaTrack> _lavaNode,
         }
     }
 
-    //[SlashCommand("leave", "Leave a voice channel", runMode: RunMode.Async)]
-    //public async Task LeaveAsync()
-    //{
-    //    var player = await TryGetLavaPlayer();
-    //    if (player is null)
-    //    {
-    //        return;
-    //    }
+    [SlashCommand("leave", "Leave a voice channel")]
+    public async Task LeaveAsync()
+    {
+        var voiceChannel = (Context.User as IVoiceState)?.VoiceChannel;
+        if (voiceChannel is null)
+        {
+            await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("Not sure which voice channel to disconnect from."));
+            return;
+        }
 
-    //    var voiceChannel = ((IVoiceState)Context.User).VoiceChannel ?? player.VoiceChannel;
-    //    if (voiceChannel is null)
-    //    {
-    //        await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("Not sure which voice channel to disconnect from."));
-    //        return;
-    //    }
-
-    //    try
-    //    {
-    //        await _lavaNode.LeaveAsync(voiceChannel);
-    //        await RespondAsync(embed: await _embedHandler.CreateSuccessEmbedAsync($"I've left {voiceChannel.Name}!"));
-    //    }
-    //    catch (Exception exception)
-    //    {
-    //        await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(exception.Source, exception.Message));
-    //    }
-    //}
+        try
+        {
+            await _lavaNode.LeaveAsync(voiceChannel);
+            await RespondAsync(embed: await _embedHandler.CreateSuccessEmbedAsync($"I've left {voiceChannel.Name}!"));
+        }
+        catch (Exception exception)
+        {
+            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(exception));
+        }
+    }
 
     //[SlashCommand("play", "Play a song")]
     //public async Task PlayAsync(string searchQuery)
