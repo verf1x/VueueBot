@@ -2,7 +2,7 @@
 
 namespace VueueBot.Core.Modules;
 
-public class GeneralModule : InteractionModuleBase<ShardedInteractionContext>
+public sealed class GeneralModule : InteractionModuleBase<ShardedInteractionContext>
 {
     public InteractionService Commands { get; set; }
 
@@ -10,7 +10,7 @@ public class GeneralModule : InteractionModuleBase<ShardedInteractionContext>
     {
     }
 
-    [SlashCommand("ping", "respond to ping")]
+    [SlashCommand("_pingowner", "respond to ping")]
     [RequireOwner]
     public async Task PingAsync()
     {

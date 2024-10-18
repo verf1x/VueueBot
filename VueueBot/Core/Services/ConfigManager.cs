@@ -13,9 +13,8 @@ public static class ConfigManager
     static ConfigManager()
     {
         if (!Directory.Exists(_configFolder))
-        {
             Directory.CreateDirectory(_configFolder);
-        }
+
         if (!File.Exists(_configPath))
         {
             Config = new BotConfig();

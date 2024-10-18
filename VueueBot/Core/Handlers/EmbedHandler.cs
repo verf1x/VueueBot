@@ -50,12 +50,12 @@ public class EmbedHandler
                 .WithCurrentTimestamp()
                 .Build());
 
-    public async Task<Embed> CreateMediaEmbedAsync(string title, string artwork, string trackTitle, string trackUrl)
+    public async Task<Embed> CreateMediaEmbedAsync(string title, string trackTitle, string trackUrl)
         => await Task.Run(()
             => new EmbedBuilder()
                 .WithTitle(title)
                 .WithColor(MediaColor)
-                .WithImageUrl(artwork)
+                //.WithImageUrl(artwork)
                 .AddField(trackTitle, trackUrl, true)
                 .WithFooter("YouTube")
                 .WithCurrentTimestamp()

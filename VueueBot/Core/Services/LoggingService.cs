@@ -8,6 +8,7 @@ public class LoggingService
         {
             severity = LogSeverity.Warning;
         }
+
         await AppendAsync($"{GetSeverityString(severity)}", GetConsoleColorByLogSeverity(severity));
         await AppendAsync($" [{SourceToString(src)}] ", ConsoleColor.DarkGray);
 

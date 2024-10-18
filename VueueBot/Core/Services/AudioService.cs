@@ -4,22 +4,27 @@ using System.Text.Json;
 using Victoria;
 using Victoria.Enums;
 using Victoria.WebSocket.EventArgs;
+using VueueBot.Core.Services;
 
 namespace VueueBot.Core.Managers;
 
 public class AudioService
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly LavaNode _lavaNode;
-    private readonly ILogger _logger;
+    //private readonly ILogger _logger;
+    private readonly LoggingService _logger;
     public readonly HashSet<ulong> VoteQueue;
     private readonly ConcurrentDictionary<ulong, CancellationTokenSource> _disconnectTokens;
     public readonly ConcurrentDictionary<ulong, ulong> TextChannels;
     private readonly DiscordShardedClient _client;
 
-    public AudioService(LavaNode lavaNode, ILoggerFactory loggerFactory)
+    public AudioService(IServiceProvider serviceProvider, ILoggerFactory loggerFactory)
     {
-        _lavaNode = lavaNode;
-        _logger = loggerFactory.CreateLogger<LavaNode>();
+        _serviceProvider = serviceProvider;
+        _lavaNode = serviceProvider.GetRequiredService<LavaNode>();
+        //_logger = loggerFactory.CreateLogger<LavaNode>();
+        _logger = serviceProvider.GetRequiredService<LoggingService>();
         _disconnectTokens = new ConcurrentDictionary<ulong, CancellationTokenSource>();
         TextChannels = new ConcurrentDictionary<ulong, ulong>();
         VoteQueue = new HashSet<ulong>();
@@ -80,13 +85,12 @@ public class AudioService
 
     private async Task OnWebSocketClosed(WebSocketClosedEventArg arg)
     {
-        _logger.LogCritical($"{arg.Code} {arg.Reason}");
-        await Task.CompletedTask;
+        await _logger.LogAsync("audio", LogSeverity.Info, $"Websocket Closed: {arg.Reason}");
     }
 
     private async Task OnStats(StatsEventArg arg)
     {
-        _logger.LogInformation(JsonSerializer.Serialize(arg));
+        await _logger.LogAsync("audio", LogSeverity.Info,$"{JsonSerializer.Serialize(arg)}");
         await Task.CompletedTask;
     }
 

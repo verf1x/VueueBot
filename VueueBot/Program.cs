@@ -6,11 +6,11 @@ using VueueBot.Core.Services;
 
 namespace VueueBot;
 
-class Program
+internal class Program
 {
-    private static LavaNode _lavaNode;
-    private static DiscordShardedClient _client;
     private static readonly IServiceProvider _provider;
+    private static readonly LavaNode _lavaNode;
+    private static readonly DiscordShardedClient _client;
     private static readonly LoggingService _logger;
     private static readonly DiscordSocketConfig _socketConfig;
 
@@ -39,8 +39,7 @@ class Program
     }
 
     private static ServiceProvider ConfigureServices()
-    {
-        return new ServiceCollection()
+        => new ServiceCollection()
                 .AddSingleton(_socketConfig)
                 .AddSingleton<DiscordShardedClient>()
                 .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordShardedClient>()))
@@ -52,7 +51,6 @@ class Program
                 .AddLavaNode()
                 .AddLogging()
                 .BuildServiceProvider();
-    }
 
     private static async Task OnReady(DiscordSocketClient shard)
     {
@@ -68,8 +66,7 @@ class Program
     }
 
     private static DiscordSocketConfig GetSocketConfig()
-    {
-        return new()
+        => new()
         {
             LogLevel = IsDebug() ? LogSeverity.Debug : LogSeverity.Info,
             AlwaysDownloadUsers = true,
@@ -77,7 +74,6 @@ class Program
             GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent |
                              GatewayIntents.GuildMembers | GatewayIntents.GuildVoiceStates
         };
-    }
 
     private static async Task StartBotAsync()
     {

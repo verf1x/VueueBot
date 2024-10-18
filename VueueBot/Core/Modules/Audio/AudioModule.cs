@@ -1,19 +1,32 @@
 ﻿using Discord.Interactions;
 using System.Text;
 using Victoria;
+using Victoria.Rest.Search;
 using VueueBot.Core.Handlers;
 using VueueBot.Core.Managers;
+using VueueBot.Core.Services;
 
 namespace VueueBot.Core.Modules.Audio;
 
-public class AudioModule(
-    LavaNode<LavaPlayer<LavaTrack>, LavaTrack> _lavaNode,
-    AudioService _audioService,
-    EmbedHandler _embedHandler) : InteractionModuleBase<ShardedInteractionContext>
+public sealed class AudioModule : InteractionModuleBase<ShardedInteractionContext>
 {
+    private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<int> _range = Enumerable.Range(1900, 2000);
+    private readonly LavaNode<LavaPlayer<LavaTrack>, LavaTrack> _lavaNode;
+    private readonly AudioService _audioService;
+    private readonly EmbedHandler _embedHandler;
+    private readonly LoggingService _loggingService;
 
     public InteractionService Commands { get; set; }
+
+    public AudioModule(IServiceProvider serviceProvider, LavaNode<LavaPlayer<LavaTrack>, LavaTrack> lavaNode, AudioService audioService, EmbedHandler embedHandler)
+    {
+        _serviceProvider = serviceProvider;
+        _lavaNode = _serviceProvider.GetRequiredService<LavaNode<LavaPlayer<LavaTrack>, LavaTrack>>();
+        _audioService = _serviceProvider.GetRequiredService<AudioService>();
+        _embedHandler = _serviceProvider.GetRequiredService<EmbedHandler>();
+        _loggingService = _serviceProvider.GetRequiredService<LoggingService>();
+    }
 
     [SlashCommand("join", "Joins to the voice channel")]
     public async Task JoinAsync()
@@ -32,9 +45,9 @@ public class AudioModule(
 
             _audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(exception));
+            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(ex));
         }
     }
 
@@ -53,72 +66,63 @@ public class AudioModule(
             await _lavaNode.LeaveAsync(voiceChannel);
             await RespondAsync(embed: await _embedHandler.CreateSuccessEmbedAsync($"I've left {voiceChannel.Name}!"));
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(exception));
+            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(ex));
         }
     }
 
-    //[SlashCommand("play", "Play a song")]
-    //public async Task PlayAsync(string searchQuery)
-    //{
-    //    if (string.IsNullOrWhiteSpace(searchQuery))
-    //    {
-    //        await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("Please provide search terms."));
-    //        return;
-    //    }
+    [SlashCommand("play", "Play a song")]
+    public async Task PlayAsync(string searchQuery)
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("Please provide search terms."));
+            return;
+        }
 
-    //    if (!_lavaNode.TryGetPlayer(Context.Guild, out var player))
-    //    {
-    //        var voiceState = Context.User as IVoiceState;
-    //        if (voiceState?.VoiceChannel is null)
-    //        {
-    //            await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("You must be connected to a voice channel!"));
-    //            return;
-    //        }
+        var player = await _lavaNode.TryGetPlayerAsync(Context.Guild.Id);
 
-    //        try
-    //        {
-    //            player = await _lavaNode.JoinAsync(voiceState.VoiceChannel, Context.Channel as ITextChannel);
+        if (player is not null)
+        {
+            var voiceState = Context.User as IVoiceState;
+            if (voiceState?.VoiceChannel is null)
+            {
+                await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync("You must be connected to a voice channel!"));
+                return;
+            }
 
-    //        }
-    //        catch (Exception exception)
-    //        {
-    //            await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(exception.Source, exception.Message));
-    //        }
-    //    }
+            try
+            {
+                player = await _lavaNode.JoinAsync(voiceState.VoiceChannel);
+            }
+            catch (Exception ex)
+            {
+                await RespondAsync(embed: await _embedHandler.CreateExceptionEmbedAsync(ex));
+            }
+        }
 
-    //    var searchResponse = await _lavaNode.SearchAsync(Uri.IsWellFormedUriString(searchQuery, UriKind.Absolute) ? SearchType.Direct : SearchType.YouTube, searchQuery);
-    //    if (searchResponse.Status is SearchStatus.LoadFailed or SearchStatus.NoMatches)
-    //    {
-    //        await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync($"I wasn't able to find anything for `{searchQuery}`."));
-    //        return;
-    //    }
+        var searchResponse = await _lavaNode.LoadTrackAsync(searchQuery);
 
-    //    if (!string.IsNullOrWhiteSpace(searchResponse.Playlist.Name))
-    //    {
-    //        player.Vueue.Enqueue(searchResponse.Tracks);
-    //        await RespondAsync(embed: await _embedHandler.CreateSuccessEmbedAsync($"Enqueued {searchResponse.Tracks.Count} songs."));
-    //    }
-    //    else
-    //    {
-    //        var track = searchResponse.Tracks.FirstOrDefault();
-    //        player.Vueue.Enqueue(track);
+        if (searchResponse.Type is SearchType.Empty or SearchType.Error)
+        {
+            await RespondAsync(embed: await _embedHandler.CreateWarningEmbedAsync($"I wasn't able to find anything for `{searchQuery}`."));
+            return;
+        }
 
-    //        var artwork = await track.FetchArtworkAsync();
+        var track = searchResponse.Tracks.FirstOrDefault();
 
-    //        await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync("Added to playlist:", artwork, track.Title, track.Url));
-    //    }
+        if(player.GetQueue().Count is 0)
+        {
+            await player.PlayAsync(_lavaNode, track);
+            await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync("Now playing:", track.Title, track.Url));
 
-    //    if (player.PlayerState is PlayerState.Playing or PlayerState.Paused)
-    //    {
-    //        return;
-    //    }
+            return;
+        }
 
-    //    player.Vueue.TryDequeue(out var lavaTrack);
-    //    await player.PlayAsync(lavaTrack);
-    //    await player.SetVolumeAsync(30);
-    //}
+        player.GetQueue().Enqueue(track);
+        await RespondAsync(embed: await _embedHandler.CreateMediaEmbedAsync("Added to queue:", track.Title, track.Url));
+    }
 
     //[SlashCommand("pause", "Pause playing song", runMode: RunMode.Async)]
     //public async Task PauseAsync()
